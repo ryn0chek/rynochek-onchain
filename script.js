@@ -7,78 +7,120 @@ function initChart() {
   chart = echarts.init(chartDom);
 
   chart.setOption({
-    title: {
-      text: '',
-      left: 'center'
-    },
+    title: { text: '', left: 'center' },
     tooltip: {
       trigger: 'axis',
       formatter: function (params) {
-        const date = params[0].axisValue;
-        const price = params[0].data[1];
-        return `${date}<br/>$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        return params.map(p => {
+          const date = p.axisValue;
+          return `${p.marker} ${p.seriesName}<br/>${date}<br/>$${p.data[1].toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        }).join('<br/><br/>');
       }
     },
+    legend: { show: true },
     xAxis: { type: 'time', boundaryGap: false },
     yAxis: { type: 'value', scale: true },
     dataZoom: [
       { type: 'inside', throttle: 50 },
       { type: 'slider' }
     ],
-    series: [{
-      name: 'Price',
-      type: 'line',
-      showSymbol: false,
-      data: [],
-      lineStyle: { width: 2, color: '#4caf50' },
-      areaStyle: { color: 'rgba(76,175,80,0.2)' }
-    }]
+    series: [] // динамически добавим
   });
 }
 
 async function fetchAllBinanceData(symbol) {
+  const start = new Date('2017-08-17').getTime();
+  const end = new Date().getTime();
+  let allData = [];
+  let currentStart = start;
+
+  while (currentStart < end) {
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=${MAX_LIMIT}&startTime=${currentStart}`;
+    const response = await fetch(url);
+    const chunk = await response.json();
+
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+
+    allData = allData.concat(chunk.map(c => [new Date(c[0]), parseFloat(c[4])]));
+    currentStart = chunk[chunk.length - 1][0] + MS_IN_DAY;
+
+    await new Promise(resolve => setTimeout(resolve, 150)); // антиспам
+  }
+
+  return allData;
+}
+
+async function fetchOnchainMetric(url) {
+  const response = await fetch(url);
+  const raw = await response.json();
+
+  return raw.map(entry => [new Date(entry.date), entry.value]);
+}
+
+async function updateChart(symbol) {
   try {
-    document.getElementById('chart-title').textContent = `Loading ${symbol} full history...`;
+    document.getElementById('chart-title').textContent = `Loading ${symbol}...`;
 
-    const start = new Date('2017-08-17').getTime();
-    const end = new Date().getTime();
-    let allData = [];
-    let currentStart = start;
+    const priceData = await fetchAllBinanceData(symbol);
+    let lthData = [];
+    let sthData = [];
 
-    while (currentStart < end) {
-      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=${MAX_LIMIT}&startTime=${currentStart}`;
-      const response = await fetch(url);
-      const chunk = await response.json();
+    if (symbol === 'BTCUSDT') {
+      lthData = await fetchOnchainMetric('https://bitcoin-data.com/api/realized_price/lth');
+      sthData = await fetchOnchainMetric('https://bitcoin-data.com/api/realized_price/sth');
+    }
 
-      if (!Array.isArray(chunk) || chunk.length === 0) break;
+    const series = [
+      {
+        name: `${symbol} Price`,
+        type: 'line',
+        data: priceData,
+        showSymbol: false,
+        lineStyle: { width: 2, color: '#2196f3' },
+        areaStyle: { color: 'rgba(33,150,243,0.2)' }
+      }
+    ];
 
-      allData = allData.concat(chunk.map(c => [new Date(c[0]), parseFloat(c[4])]));
-      currentStart = chunk[chunk.length - 1][0] + MS_IN_DAY;
+    if (lthData.length) {
+      series.push({
+        name: 'LTH Realized Price',
+        type: 'line',
+        data: lthData,
+        showSymbol: false,
+        lineStyle: { width: 2, color: '#4caf50', type: 'dashed' }
+      });
+    }
 
-      // 💤 Антиспам: чуть подождём, чтобы не попасть под лимит
-      await new Promise(resolve => setTimeout(resolve, 150));
+    if (sthData.length) {
+      series.push({
+        name: 'STH Realized Price',
+        type: 'line',
+        data: sthData,
+        showSymbol: false,
+        lineStyle: { width: 2, color: '#f44336', type: 'dashed' }
+      });
     }
 
     chart.setOption({
-      title: { text: `${symbol} Price History (${allData.length} days)` },
-      series: [{ data: allData }]
+      title: { text: `${symbol} Historical Price` },
+      series
     });
 
-    document.getElementById('chart-title').textContent = `${symbol} Full Price History`;
-
+    document.getElementById('chart-title').textContent = `${symbol} Price Chart`;
   } catch (err) {
-    console.error('Error loading full Binance data:', err);
+    console.error('Error updating chart:', err);
     document.getElementById('chart-title').textContent = 'Error loading data';
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
+
   const select = document.getElementById('coin-select');
-  fetchAllBinanceData(select.value);
+  updateChart(select.value);
 
   select.addEventListener('change', () => {
-    fetchAllBinanceData(select.value);
+    updateChart(select.value);
   });
 
   document.getElementById('resetZoomBtn').addEventListener('click', () => {
