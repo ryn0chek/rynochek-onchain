@@ -1,92 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bitcoin Price & On-Chain Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bitcoin Price Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
       margin: 0;
       padding: 20px;
-      background-color: #f5f5f5;
     }
     .container {
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    #btc-price {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
     }
     .chart-container {
       background: white;
       border-radius: 8px;
       padding: 20px;
-      margin-bottom: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #333;
-      text-align: center;
-    }
-    .stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .stat-card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      flex: 1;
-      min-width: 200px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .stat-card h3 {
-      margin-top: 0;
-      color: #666;
-    }
-    .stat-card p {
-      font-size: 24px;
-      margin: 10px 0;
-      color: #333;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Bitcoin Dashboard</h1>
-    
-    <div class="stats">
-      <div class="stat-card">
-        <h3>BTC Price (Bitstamp)</h3>
-        <p id="btc-price">Loading...</p>
-      </div>
-      <div class="stat-card">
-        <h3>24h Volume</h3>
-        <p id="btc-volume">Loading...</p>
-      </div>
-      <div class="stat-card">
-        <h3>Total Transactions</h3>
-        <p id="total-txs">Loading...</p>
-      </div>
-      <div class="stat-card">
-        <h3>UTXO Count</h3>
-        <p id="utxo-count">Loading...</p>
-      </div>
-    </div>
-
+    <h1>Bitcoin Price (Bitstamp)</h1>
+    <div id="btc-price">Loading...</div>
     <div class="chart-container">
-      <h2>BTC/USD Price (Last 24h)</h2>
       <canvas id="priceChart"></canvas>
     </div>
-
-    <div class="chart-container">
-      <h2>On-Chain Transactions (Last 7 Days)</h2>
-      <canvas id="txChart"></canvas>
-    </div>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
