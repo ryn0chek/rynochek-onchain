@@ -1,8 +1,4 @@
 let chart;
-const coinNames = {
-  bitcoin: 'Bitcoin (BTC)',
-  ethereum: 'Ethereum (ETH)'
-};
 
 function initChart() {
   const chartDom = document.getElementById('chart');
@@ -38,53 +34,48 @@ function initChart() {
       type: 'line',
       showSymbol: false,
       data: [],
-      lineStyle: { width: 2, color: '#f90' },
-      areaStyle: { color: 'rgba(255,165,0,0.2)' }
+      lineStyle: { width: 2, color: '#2196f3' },
+      areaStyle: { color: 'rgba(33,150,243,0.2)' }
     }]
   });
 }
 
-async function fetchHistoricalData(coinId) {
+async function fetchBinanceData(symbol) {
   try {
-    document.getElementById('chart-title').textContent = `Loading ${coinNames[coinId]}...`;
+    document.getElementById('chart-title').textContent = `Loading ${symbol}...`;
 
-    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=max&interval=daily`;
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=1000`;
     const response = await fetch(url);
-    const data = await response.json();
+    const raw = await response.json();
 
-    const formattedData = data.prices.map(([timestamp, price]) => {
-      return [new Date(timestamp), price];
+    const formattedData = raw.map(candle => {
+      return [new Date(candle[0]), parseFloat(candle[4])]; // timestamp + close
     });
 
     chart.setOption({
-      title: { text: `${coinNames[coinId]} Price History` },
-      series: [{
-        data: formattedData
-      }]
+      title: { text: `${symbol} Price (Last ${formattedData.length} days)` },
+      series: [{ data: formattedData }]
     });
 
-    document.getElementById('chart-title').textContent = `${coinNames[coinId]} Price History`;
+    document.getElementById('chart-title').textContent = `${symbol} Price History`;
 
   } catch (error) {
-    console.error('Error loading data:', error);
+    console.error('Error loading data from Binance:', error);
     document.getElementById('chart-title').textContent = 'Error loading data';
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
+
   const select = document.getElementById('coin-select');
-  fetchHistoricalData(select.value);
+  fetchBinanceData(select.value);
 
   select.addEventListener('change', () => {
-    fetchHistoricalData(select.value);
+    fetchBinanceData(select.value);
   });
 
   document.getElementById('resetZoomBtn').addEventListener('click', () => {
-    chart.dispatchAction({
-      type: 'dataZoom',
-      start: 0,
-      end: 100
-    });
+    chart.dispatchAction({ type: 'dataZoom', start: 0, end: 100 });
   });
 });
