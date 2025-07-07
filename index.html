@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bitcoin Price Dashboard</title>
+  <title>Crypto Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     body {
@@ -14,15 +15,13 @@
       padding: 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
     }
-    h1 {
+    h1, #btc-price {
       text-align: center;
-      color: #333;
     }
     #btc-price {
-      text-align: center;
       font-size: 24px;
       margin-bottom: 20px;
     }
@@ -32,15 +31,31 @@
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    #coin-select {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 10px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Bitcoin Price (Bitstamp)</h1>
+    <h1 id="crypto-name">Crypto Price</h1>
+    <select id="coin-select">
+      <option value="bitcoin">Bitcoin (BTC)</option>
+      <option value="ethereum">Ethereum (ETH)</option>
+      <option value="solana">Solana (SOL)</option>
+      <option value="binancecoin">BNB</option>
+      <option value="dogecoin">Dogecoin (DOGE)</option>
+    </select>
     <div id="btc-price">Loading...</div>
     <div class="chart-container">
       <canvas id="priceChart"></canvas>
     </div>
+    <button id="resetZoomBtn" style="display:block; margin: 10px auto 20px auto; padding: 10px 20px; font-size: 14px;">
+      Сбросить зум
+    </button>    
   </div>
   <script src="script.js"></script>
 </body>
