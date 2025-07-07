@@ -1,96 +1,90 @@
 let chart;
-let coinId = 'bitcoin';
+const coinNames = {
+  bitcoin: 'Bitcoin (BTC)',
+  ethereum: 'Ethereum (ETH)'
+};
 
-async function fetchHistoricalData() {
+function initChart() {
+  const chartDom = document.getElementById('chart');
+  chart = echarts.init(chartDom);
+
+  chart.setOption({
+    title: {
+      text: '',
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params) {
+        const date = params[0].axisValue;
+        const price = params[0].data[1];
+        return `${date}<br/>$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+      }
+    },
+    xAxis: {
+      type: 'time',
+      boundaryGap: false
+    },
+    yAxis: {
+      type: 'value',
+      scale: true
+    },
+    dataZoom: [
+      { type: 'inside', throttle: 50 },
+      { type: 'slider' }
+    ],
+    series: [{
+      name: 'Price',
+      type: 'line',
+      showSymbol: false,
+      data: [],
+      lineStyle: { width: 2, color: '#f90' },
+      areaStyle: { color: 'rgba(255,165,0,0.2)' }
+    }]
+  });
+}
+
+async function fetchHistoricalData(coinId) {
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=1&interval=hourly`;
-    const response = await axios.get(url);
-    const prices = response.data.prices;
+    document.getElementById('chart-title').textContent = `Loading ${coinNames[coinId]}...`;
 
-    const labels = prices.map(p => {
-      const date = new Date(p[0]);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=max&interval=daily`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const formattedData = data.prices.map(([timestamp, price]) => {
+      return [new Date(timestamp), price];
     });
 
-    const data = prices.map(p => p[1]);
-    updateChart(labels, data);
+    chart.setOption({
+      title: { text: `${coinNames[coinId]} Price History` },
+      series: [{
+        data: formattedData
+      }]
+    });
 
-    const latestPrice = data[data.length - 1];
-    document.getElementById('btc-price').textContent = `$${latestPrice.toLocaleString()}`;
-    document.getElementById('crypto-name').textContent = `${coinId.charAt(0).toUpperCase() + coinId.slice(1)} Price (CoinGecko)`;
+    document.getElementById('chart-title').textContent = `${coinNames[coinId]} Price History`;
 
   } catch (error) {
-    console.error('Error fetching CoinGecko data:', error);
-    document.getElementById('btc-price').textContent = 'Error loading data';
+    console.error('Error loading data:', error);
+    document.getElementById('chart-title').textContent = 'Error loading data';
   }
 }
 
-function initChart() {
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'Price (USD)',
-        data: [],
-        borderColor: 'orange',
-        backgroundColor: 'rgba(255,165,0,0.1)',
-        tension: 0.3,
-        fill: true,
-        pointRadius: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: { display: true },
-        y: { beginAtZero: false }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return `$${context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-            }
-          }
-        },
-        zoom: {
-          pan: {
-            enabled: true,
-            mode: 'x'
-          },
-          zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x'
-          }
-        }
-      }
-    }
-  });
-
-  // Добавим обработчик кнопки сброса зума
-  document.getElementById('resetZoomBtn').addEventListener('click', () => {
-    chart.resetZoom();
-  });
-}
-
-
-function updateChart(labels, data) {
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = data;
-  chart.update();
-}
-
-// Обработка выбора монеты
-document.getElementById('coin-select').addEventListener('change', (e) => {
-  coinId = e.target.value;
-  fetchHistoricalData();
-});
-
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
-  fetchHistoricalData();
-  setInterval(fetchHistoricalData, 60000);
+  const select = document.getElementById('coin-select');
+  fetchHistoricalData(select.value);
+
+  select.addEventListener('change', () => {
+    fetchHistoricalData(select.value);
+  });
+
+  document.getElementById('resetZoomBtn').addEventListener('click', () => {
+    chart.dispatchAction({
+      type: 'dataZoom',
+      start: 0,
+      end: 100
+    });
+  });
 });
